@@ -1,0 +1,6 @@
+{
+  "name": "BLOCK SCORE",
+  "description": "Casual 8x8 block puzzle game with Classic and Adventure modes by DROX STUDIO.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
