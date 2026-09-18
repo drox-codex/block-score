@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +21,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Games
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Settings
@@ -28,20 +32,27 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.R
 import com.example.viewmodel.GameViewModel
 
@@ -51,6 +62,8 @@ fun MainMenuScreen(
     modifier: Modifier = Modifier
 ) {
     val bestScore = viewModel.preferences.bestScore
+    var showMoreGamesDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Box(
         modifier = modifier
@@ -67,13 +80,12 @@ fun MainMenuScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Top bar: Settings button
-        Row(
+        // Top bar: Settings & Achievements buttons
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalAlignment = Alignment.End
         ) {
             Box(
                 modifier = Modifier
@@ -89,6 +101,27 @@ fun MainMenuScreen(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Settings",
                     tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Achievements button using Medal icon under settings
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .shadow(4.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1B2A56))
+                    .clickable { viewModel.navigateTo(GameViewModel.Screen.ACHIEVEMENTS) }
+                    .testTag("achievements_button"),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.EmojiEvents, // Standard medal/trophy icon in material
+                    contentDescription = "Achievements",
+                    tint = Color(0xFFFBBF24),
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -167,14 +200,14 @@ fun MainMenuScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
             // Large Adventure Button
             Button(
                 onClick = { viewModel.navigateTo(GameViewModel.Screen.ADVENTURE_MAP) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(60.dp)
                     .shadow(8.dp, RoundedCornerShape(20.dp))
                     .testTag("adventure_button"),
                 shape = RoundedCornerShape(20.dp),
@@ -212,7 +245,7 @@ fun MainMenuScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(60.dp)
                     .shadow(8.dp, RoundedCornerShape(20.dp))
                     .testTag("classic_button"),
                 shape = RoundedCornerShape(20.dp),
@@ -240,44 +273,73 @@ fun MainMenuScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Small Achievements Button
-            Box(
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // More Games Button
+            Button(
+                onClick = { showMoreGamesDialog = true },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF1E2D58))
-                    .clickable { viewModel.navigateTo(GameViewModel.Screen.ACHIEVEMENTS) }
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-                    .testTag("achievements_button"),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .shadow(6.dp, RoundedCornerShape(20.dp))
+                    .testTag("more_games_button"),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF8B5CF6) // Purple to differentiate
+                )
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = "Achievements",
-                        tint = Color(0xFFFBBF24),
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.Games,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Achievements",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        text = "More Games",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 }
             }
         }
 
-        // Bottom Brand: "DROX STUDIO" subtly in the interface
-        Box(
+        // Bottom Brand & Telegram Link
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp)
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Telegram Button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF2CA5E0)) // Official Telegram Blue
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/drox_71"))
+                        context.startActivity(intent)
+                    }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Join Telegram",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "DROX STUDIO",
                 fontSize = 12.sp,
@@ -287,4 +349,42 @@ fun MainMenuScreen(
             )
         }
     }
+    
+    // More Games Floating Dialog
+    if (showMoreGamesDialog) {
+        Dialog(onDismissRequest = { showMoreGamesDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF1E293B),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "More Games",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "More exciting games coming soon! Stay tuned and join our Telegram for updates.",
+                        fontSize = 16.sp,
+                        color = Color(0xFF94A3B8),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { showMoreGamesDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                    ) {
+                        Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
 }
+

@@ -37,8 +37,8 @@ data class DragState(
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
-        // Gentle elevation above the finger (~36dp / 72px) so blocks are clearly visible
-        const val DRAG_LIFT_OFFSET_PX = 72f
+        // Gentle elevation above the finger (~60dp / 120px) so blocks are clearly visible
+        const val DRAG_LIFT_OFFSET_PX = 120f
     }
 
     val preferences = GamePreferences(application)
