@@ -58,7 +58,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         ADVENTURE_MAP,
         ADVENTURE_GAME,
         ACHIEVEMENTS,
-        SETTINGS
+        SETTINGS,
+        ONE_LINE_GAME,
+        TIC_TAC_TOE_GAME
     }
 
     private val _currentScreen = MutableStateFlow(Screen.SPLASH)
@@ -66,6 +68,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     // Board layout coordinates measured by Compose
     var boardBoundsInRoot: Pair<Offset, Float> = Pair(Offset.Zero, 0f) // (topLeft, sizePx)
+    
+    // Tic-Tac-Toe State
+    private val _ticTacToeState = MutableStateFlow(com.example.model.TicTacToeState())
+    val ticTacToeState: StateFlow<com.example.model.TicTacToeState> = _ticTacToeState.asStateFlow()
+
+    // One Line Mode State
+    private val _oneLineGameState = MutableStateFlow<com.example.model.OneLineGameState?>(null)
+    val oneLineGameState: StateFlow<com.example.model.OneLineGameState?> = _oneLineGameState.asStateFlow()
+    var oneLineLevelProgress: Int
+        get() = preferences.oneLineLevelProgress
+        set(value) { preferences.oneLineLevelProgress = value }
 
     init {
         startNewClassicGame()
@@ -108,6 +121,176 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         )
         resetDrag()
         navigateTo(Screen.ADVENTURE_GAME)
+    }
+
+    fun startOneLineLevel(levelNum: Int) {
+        val level = com.example.model.OneLineLevels.getLevel(levelNum)
+        val initialPath = level.startCell?.let { listOf(it) } ?: emptyList()
+        _oneLineGameState.value = com.example.model.OneLineGameState(
+            currentLevel = level,
+            path = initialPath,
+            isLevelComplete = false
+        )
+        navigateTo(Screen.ONE_LINE_GAME)
+    }
+
+    fun onOneLineCellTouched(row: Int, col: Int) {
+        val state = _oneLineGameState.value ?: return
+        if (state.isLevelComplete) return
+
+        val pos = Pair(row, col)
+        if (!state.currentLevel.validCells.contains(pos)) return
+
+        var newPath = state.path.toMutableList()
+
+        if (newPath.isEmpty()) {
+            if (state.currentLevel.startCell == null || pos == state.currentLevel.startCell) {
+                newPath.add(pos)
+                soundManager.playBlockPlace()
+            }
+        } else {
+            val current = newPath.last()
+            if (pos == current) return
+
+            val index = newPath.indexOf(pos)
+            if (index != -1 && index < newPath.size - 1) {
+                // Allow player to backtrack by dragging back along the path
+                newPath = newPath.subList(0, index + 1).toMutableList()
+                soundManager.playBlockPlace()
+            } else if (index == -1) {
+                // Check if directly adjacent
+                val isAdjacent = (kotlin.math.abs(pos.first - current.first) == 1 && pos.second == current.second) ||
+                                 (kotlin.math.abs(pos.second - current.second) == 1 && pos.first == current.first)
+
+                if (isAdjacent) {
+                    newPath.add(pos)
+                    soundManager.playBlockPlace()
+                } else {
+                    // Fast swipe jumped over 1 cell: check intermediate orthogonal steps
+                    val rDiff = pos.first - current.first
+                    val cDiff = pos.second - current.second
+                    if (kotlin.math.abs(rDiff) + kotlin.math.abs(cDiff) == 2) {
+                        val mid1 = Pair(current.first + rDiff.compareTo(0), current.second)
+                        val mid2 = Pair(current.first, current.second + cDiff.compareTo(0))
+                        val mid = when {
+                            state.currentLevel.validCells.contains(mid1) && !newPath.contains(mid1) -> mid1
+                            state.currentLevel.validCells.contains(mid2) && !newPath.contains(mid2) -> mid2
+                            else -> null
+                        }
+                        if (mid != null) {
+                            newPath.add(mid)
+                            newPath.add(pos)
+                            soundManager.playBlockPlace()
+                        }
+                    }
+                }
+            }
+        }
+
+        val isComplete = newPath.size == state.currentLevel.validCells.size
+        if (isComplete) {
+            soundManager.playLevelComplete()
+            if (state.currentLevel.levelNumber >= oneLineLevelProgress) {
+                oneLineLevelProgress = state.currentLevel.levelNumber + 1
+            }
+            
+            // Spawn celebration particles
+            val newParticles = mutableListOf<com.example.model.Particle>()
+            val (boardTopLeft, boardSize) = boardBoundsInRoot
+            val cx = if (boardSize > 0) boardTopLeft.x + (boardSize / 2f) else 500f
+            val cy = if (boardSize > 0) boardTopLeft.y + (boardSize / 2f) else 1000f
+            for (i in 0 until 50) {
+                spawnCellParticles(
+                    cx = cx + (kotlin.random.Random.nextFloat() - 0.5f) * 600f, 
+                    cy = cy + (kotlin.random.Random.nextFloat() - 0.5f) * 600f, 
+                    color = androidx.compose.ui.graphics.Color(0xFFFBBF24), 
+                    list = newParticles
+                )
+                spawnCellParticles(
+                    cx = cx + (kotlin.random.Random.nextFloat() - 0.5f) * 600f, 
+                    cy = cy + (kotlin.random.Random.nextFloat() - 0.5f) * 600f, 
+                    color = androidx.compose.ui.graphics.Color(0xFF10B981), 
+                    list = newParticles
+                )
+            }
+            _gameState.value = _gameState.value.copy(particles = newParticles)
+            viewModelScope.launch { 
+                kotlinx.coroutines.delay(1000)
+                _gameState.value = _gameState.value.copy(particles = emptyList()) 
+            }
+        } else {
+            // Check for dead end: if head has no valid unvisited neighbors, user is stuck
+            if (newPath.isNotEmpty() && isOneLineDeadEnd(newPath.last(), newPath, state.currentLevel.validCells)) {
+                soundManager.playGameOver()
+                newPath = state.currentLevel.startCell?.let { mutableListOf(it) } ?: mutableListOf()
+            }
+        }
+
+        _oneLineGameState.value = state.copy(
+            path = newPath,
+            isLevelComplete = isComplete
+        )
+    }
+
+    private fun isOneLineDeadEnd(
+        head: Pair<Int, Int>,
+        currentPath: List<Pair<Int, Int>>,
+        validCells: Set<Pair<Int, Int>>
+    ): Boolean {
+        if (currentPath.size == validCells.size) return false
+        val neighbors = listOf(
+            Pair(head.first - 1, head.second),
+            Pair(head.first + 1, head.second),
+            Pair(head.first, head.second - 1),
+            Pair(head.first, head.second + 1)
+        )
+        return neighbors.none { validCells.contains(it) && !currentPath.contains(it) }
+    }
+
+    fun onOneLineDragEnded() {
+        // Do not reset valid user progress when lifting finger.
+        // Mistakes (dead ends) are already detected and reset immediately in onOneLineCellTouched.
+    }
+
+    fun getOneLineHint() {
+        val state = _oneLineGameState.value ?: return
+        if (state.isLevelComplete) return
+        val solution = state.currentLevel.solutionPath
+        if (solution.isEmpty()) return
+
+        val currentPath = state.path
+        var matchCount = 0
+        while (matchCount < currentPath.size && matchCount < solution.size && currentPath[matchCount] == solution[matchCount]) {
+            matchCount++
+        }
+
+        val newPath = if (matchCount < currentPath.size) {
+            // Player deviated from valid solution, trim back to the matching prefix + 1 step forward
+            solution.take(matchCount + 1).toMutableList()
+        } else {
+            // Player is following solution, advance 1 step
+            solution.take(kotlin.math.min(matchCount + 1, solution.size)).toMutableList()
+        }
+
+        soundManager.playBlockPlace()
+        val isComplete = newPath.size == state.currentLevel.validCells.size
+        if (isComplete) {
+            soundManager.playLevelComplete()
+            if (state.currentLevel.levelNumber >= oneLineLevelProgress) {
+                oneLineLevelProgress = state.currentLevel.levelNumber + 1
+            }
+        }
+
+        _oneLineGameState.value = state.copy(
+            path = newPath,
+            isLevelComplete = isComplete
+        )
+    }
+
+    fun restartOneLineLevel() {
+        _oneLineGameState.value?.let { state ->
+            startOneLineLevel(state.currentLevel.levelNumber)
+        }
     }
 
     fun restartCurrentGame() {
@@ -484,5 +667,145 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         preferences.resetAll()
         _gameState.value = GameState(bestScore = 0)
         soundManager.updateAmbientMusic()
+        startOneLineLevel(1)
+    }
+
+    fun startTicTacToeGame(difficulty: com.example.model.TicTacToeDifficulty) {
+        _ticTacToeState.value = com.example.model.TicTacToeState(
+            difficulty = difficulty
+        )
+        navigateTo(Screen.TIC_TAC_TOE_GAME)
+    }
+
+    fun onTicTacToeCellClicked(index: Int) {
+        val state = _ticTacToeState.value
+        if (state.isGameOver || state.board[index] != com.example.model.TicTacToePlayer.NONE || state.currentPlayer != com.example.model.TicTacToePlayer.X) return
+
+        val newBoard = state.board.toMutableList()
+        newBoard[index] = com.example.model.TicTacToePlayer.X
+        soundManager.playBlockPlace()
+
+        updateTicTacToeState(newBoard)
+
+        if (!_ticTacToeState.value.isGameOver) {
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(500)
+                makeTicTacToeAIMove()
+            }
+        }
+    }
+
+    private fun makeTicTacToeAIMove() {
+        val state = _ticTacToeState.value
+        if (state.isGameOver) return
+
+        val emptyIndices = state.board.indices.filter { state.board[it] == com.example.model.TicTacToePlayer.NONE }
+        if (emptyIndices.isEmpty()) return
+
+        val move = when (state.difficulty) {
+            com.example.model.TicTacToeDifficulty.EASY -> emptyIndices.random()
+            com.example.model.TicTacToeDifficulty.MEDIUM -> {
+                if (kotlin.random.Random.nextFloat() > 0.5f) {
+                    findBestTicTacToeMove(state.board, com.example.model.TicTacToePlayer.O)
+                } else {
+                    emptyIndices.random()
+                }
+            }
+            com.example.model.TicTacToeDifficulty.HARD -> findBestTicTacToeMove(state.board, com.example.model.TicTacToePlayer.O)
+        }
+
+        val newBoard = state.board.toMutableList()
+        newBoard[move] = com.example.model.TicTacToePlayer.O
+        soundManager.playBlockPlace()
+
+        updateTicTacToeState(newBoard)
+    }
+
+    private fun updateTicTacToeState(board: List<com.example.model.TicTacToePlayer>) {
+        val winner = checkTicTacToeWinner(board)
+        val isDraw = winner == null && !board.contains(com.example.model.TicTacToePlayer.NONE)
+        val isGameOver = winner != null || isDraw
+
+        if (isGameOver) {
+            if (winner != null) soundManager.playLevelComplete() else soundManager.playGameOver()
+        }
+
+        _ticTacToeState.value = _ticTacToeState.value.copy(
+            board = board,
+            winner = winner,
+            isDraw = isDraw,
+            isGameOver = isGameOver,
+            currentPlayer = if (isGameOver) com.example.model.TicTacToePlayer.NONE else if (_ticTacToeState.value.currentPlayer == com.example.model.TicTacToePlayer.X) com.example.model.TicTacToePlayer.O else com.example.model.TicTacToePlayer.X
+        )
+    }
+
+    private fun checkTicTacToeWinner(board: List<com.example.model.TicTacToePlayer>): com.example.model.TicTacToePlayer? {
+        val winPatterns = listOf(
+            listOf(0, 1, 2), listOf(3, 4, 5), listOf(6, 7, 8), // Rows
+            listOf(0, 3, 6), listOf(1, 4, 7), listOf(2, 5, 8), // Cols
+            listOf(0, 4, 8), listOf(2, 4, 6)                   // Diagonals
+        )
+        for (pattern in winPatterns) {
+            if (board[pattern[0]] != com.example.model.TicTacToePlayer.NONE &&
+                board[pattern[0]] == board[pattern[1]] &&
+                board[pattern[1]] == board[pattern[2]]) {
+                return board[pattern[0]]
+            }
+        }
+        return null
+    }
+
+    private fun findBestTicTacToeMove(board: List<com.example.model.TicTacToePlayer>, player: com.example.model.TicTacToePlayer): Int {
+        var bestVal = if (player == com.example.model.TicTacToePlayer.O) Int.MIN_VALUE else Int.MAX_VALUE
+        var bestMove = -1
+
+        for (i in board.indices) {
+            if (board[i] == com.example.model.TicTacToePlayer.NONE) {
+                val newBoard = board.toMutableList()
+                newBoard[i] = player
+                val moveVal = minimax(newBoard, 0, false)
+                if (player == com.example.model.TicTacToePlayer.O) {
+                    if (moveVal > bestVal) {
+                        bestMove = i
+                        bestVal = moveVal
+                    }
+                } else {
+                    if (moveVal < bestVal) {
+                        bestMove = i
+                        bestVal = moveVal
+                    }
+                }
+            }
+        }
+        return bestMove
+    }
+
+    private fun minimax(board: MutableList<com.example.model.TicTacToePlayer>, depth: Int, isMax: Boolean): Int {
+        val winner = checkTicTacToeWinner(board)
+        if (winner == com.example.model.TicTacToePlayer.O) return 10 - depth
+        if (winner == com.example.model.TicTacToePlayer.X) return -10 + depth
+        if (!board.contains(com.example.model.TicTacToePlayer.NONE)) return 0
+
+        if (isMax) {
+            var best = Int.MIN_VALUE
+            for (i in board.indices) {
+                if (board[i] == com.example.model.TicTacToePlayer.NONE) {
+                    board[i] = com.example.model.TicTacToePlayer.O
+                    best = kotlin.math.max(best, minimax(board, depth + 1, !isMax))
+                    board[i] = com.example.model.TicTacToePlayer.NONE
+                }
+            }
+            return best
+        } else {
+            var best = Int.MAX_VALUE
+            for (i in board.indices) {
+                if (board[i] == com.example.model.TicTacToePlayer.NONE) {
+                    board[i] = com.example.model.TicTacToePlayer.X
+                    best = kotlin.math.min(best, minimax(board, depth + 1, !isMax))
+                    board[i] = com.example.model.TicTacToePlayer.NONE
+                }
+            }
+            return best
+        }
     }
 }

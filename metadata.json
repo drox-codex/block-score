@@ -1,6 +1,6 @@
 {
   "name": "BLOCK SCORE",
-  "description": "Casual 8x8 block puzzle game with Classic and Adventure modes by DROX STUDIO.",
+  "description": "Casual 8x8 block puzzle game with Classic and Adventure modes, One Line puzzle with verified solvable levels, and Tic-Tac-Toe vs Robot by DROX STUDIO.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -136,6 +136,10 @@ class GamePreferences(private val context: Context) {
     var maxCombo: Int
         get() = getSecureInt(KEY_MAX_COMBO, 0, ScoreValidator.MAX_COMBO)
         set(value) = putSecureInt(KEY_MAX_COMBO, ScoreValidator.sanitizeCombo(value))
+        
+    var oneLineLevelProgress: Int
+        get() = getSecureInt("one_line_level", 1, 100)
+        set(value) = putSecureInt("one_line_level", ScoreValidator.sanitizeLevel(value))
 
     fun addStats(linesCleared: Int, blocksPlaced: Int, combo: Int) {
         try {

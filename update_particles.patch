@@ -1,0 +1,23 @@
+--- app/src/main/java/com/example/viewmodel/GameViewModel.kt
++++ app/src/main/java/com/example/viewmodel/GameViewModel.kt
+@@ -159,6 +159,19 @@
+         if (isComplete) {
+             soundManager.playLevelComplete()
+             if (state.currentLevel.levelNumber >= oneLineLevelProgress) {
+                 oneLineLevelProgress = state.currentLevel.levelNumber + 1
+             }
++            
++            // Spawn celebration particles
++            val newParticles = mutableListOf<com.example.model.Particle>()
++            val (boardTopLeft, boardSize) = boardBoundsInRoot
++            val cx = boardTopLeft.x + (boardSize / 2f)
++            val cy = boardTopLeft.y + (boardSize / 2f)
++            for (i in 0 until 50) {
++                spawnCellParticles(cx + (kotlin.random.Random.nextFloat() - 0.5f) * 400f, cy + (kotlin.random.Random.nextFloat() - 0.5f) * 400f, androidx.compose.ui.graphics.Color(0xFFFBBF24), newParticles)
++                spawnCellParticles(cx + (kotlin.random.Random.nextFloat() - 0.5f) * 400f, cy + (kotlin.random.Random.nextFloat() - 0.5f) * 400f, androidx.compose.ui.graphics.Color(0xFF10B981), newParticles)
++            }
++            _gameState.value = _gameState.value.copy(particles = newParticles)
++            viewModelScope.launch { kotlinx.coroutines.delay(1000); _gameState.value = _gameState.value.copy(particles = emptyList()) }
+         }
+ 
+         _oneLineGameState.value = state.copy(

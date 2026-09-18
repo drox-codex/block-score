@@ -24,9 +24,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Games
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -63,6 +65,7 @@ fun MainMenuScreen(
 ) {
     val bestScore = viewModel.preferences.bestScore
     var showMoreGamesDialog by remember { mutableStateOf(false) }
+    var showTicTacToeDifficultyDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Box(
@@ -92,7 +95,7 @@ fun MainMenuScreen(
                     .size(48.dp)
                     .shadow(4.dp, CircleShape)
                     .clip(CircleShape)
-                    .background(Color(0xFF1B2A56))
+                    .background(Color(0xFF192850))
                     .clickable { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) }
                     .testTag("settings_button"),
                 contentAlignment = Alignment.Center
@@ -113,7 +116,7 @@ fun MainMenuScreen(
                     .size(48.dp)
                     .shadow(4.dp, CircleShape)
                     .clip(CircleShape)
-                    .background(Color(0xFF1B2A56))
+                    .background(Color(0xFF192850))
                     .clickable { viewModel.navigateTo(GameViewModel.Screen.ACHIEVEMENTS) }
                     .testTag("achievements_button"),
                 contentAlignment = Alignment.Center
@@ -171,6 +174,7 @@ fun MainMenuScreen(
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color(0xFF18264A))
                     .padding(horizontal = 24.dp, vertical = 10.dp)
+                    .testTag("best_score_card")
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -274,7 +278,7 @@ fun MainMenuScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // More Games Button
             Button(
                 onClick = { showMoreGamesDialog = true },
@@ -344,7 +348,7 @@ fun MainMenuScreen(
                 text = "DROX STUDIO",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF64748B),
+                color = Color(0xFF94A3B8),
                 letterSpacing = 2.sp
             )
         }
@@ -355,7 +359,7 @@ fun MainMenuScreen(
         Dialog(onDismissRequest = { showMoreGamesDialog = false }) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color(0xFF1E293B),
+                color = Color(0xFF192850),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -368,19 +372,149 @@ fun MainMenuScreen(
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Large One Line Button
+                    Button(
+                        onClick = {
+                            showMoreGamesDialog = false
+                            val nextLevel = viewModel.oneLineLevelProgress
+                            viewModel.startOneLineLevel(nextLevel)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .shadow(8.dp, RoundedCornerShape(20.dp))
+                            .testTag("one_line_button"),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF97316) // Bright Orange
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Timeline, // Timeline or Timeline-like icon
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "One Line",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "More exciting games coming soon! Stay tuned and join our Telegram for updates.",
-                        fontSize = 16.sp,
-                        color = Color(0xFF94A3B8),
-                        textAlign = TextAlign.Center
-                    )
+
+                    // Tic Tac Toe Button
+                    Button(
+                        onClick = {
+                            showMoreGamesDialog = false
+                            showTicTacToeDifficultyDialog = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .shadow(8.dp, RoundedCornerShape(20.dp))
+                            .testTag("tic_tac_toe_button"),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF10B981) // Green
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Games,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Tic Tac Toe (vs Robot)",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = { showMoreGamesDialog = false },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
                     ) {
                         Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+
+    // Tic Tac Toe Difficulty Dialog
+    if (showTicTacToeDifficultyDialog) {
+        Dialog(onDismissRequest = { showTicTacToeDifficultyDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF192850),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Select Difficulty",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    val difficulties = listOf(
+                        com.example.model.TicTacToeDifficulty.EASY to Color(0xFF10B981),
+                        com.example.model.TicTacToeDifficulty.MEDIUM to Color(0xFFFBBF24),
+                        com.example.model.TicTacToeDifficulty.HARD to Color(0xFFEF4444)
+                    )
+
+                    difficulties.forEach { (diff, color) ->
+                        Button(
+                            onClick = {
+                                showTicTacToeDifficultyDialog = false
+                                viewModel.startTicTacToeGame(diff)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = color)
+                        ) {
+                            Text(
+                                text = diff.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (diff == com.example.model.TicTacToeDifficulty.MEDIUM) Color.Black else Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { showTicTacToeDifficultyDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                    ) {
+                        Text("Cancel", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }

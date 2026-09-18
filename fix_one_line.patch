@@ -1,0 +1,61 @@
+--- app/src/main/java/com/example/viewmodel/GameViewModel.kt
++++ app/src/main/java/com/example/viewmodel/GameViewModel.kt
+@@ -141,21 +141,31 @@
+         val pos = Pair(row, col)
+         if (!state.currentLevel.validCells.contains(pos)) return
+ 
+-        val newPath = state.path.toMutableList()
++        var newPath = state.path.toMutableList()
+ 
+         if (newPath.isEmpty()) {
+             newPath.add(pos)
+         } else {
+-            val lastPos = newPath.last()
+-            // Check if adjacent (not diagonal)
+-            val isAdjacent = (kotlin.math.abs(lastPos.first - row) == 1 && lastPos.second == col) ||
+-                             (kotlin.math.abs(lastPos.second - col) == 1 && lastPos.first == row)
+-            
+-            if (isAdjacent && !newPath.contains(pos)) {
+-                newPath.add(pos)
++            val index = newPath.indexOf(pos)
++            if (index != -1 && index < newPath.size - 1) {
++                // Truncate path if backtracking over already visited cells
++                newPath = newPath.subList(0, index + 1).toMutableList()
+                 soundManager.playBlockPlace()
+-            } else if (newPath.size > 1 && newPath[newPath.size - 2] == pos) {
+-                // Allow backtracking to previous cell
+-                newPath.removeLast()
+-                soundManager.playBlockPlace() // maybe different sound for undo
++            } else if (index == -1) {
++                // Interpolate line if dragging fast
++                var current = newPath.last()
++                while (current != pos) {
++                    val rDiff = pos.first - current.first
++                    val cDiff = pos.second - current.second
++                    val nextPos = when {
++                        kotlin.math.abs(rDiff) >= kotlin.math.abs(cDiff) && rDiff != 0 -> Pair(current.first + rDiff.compareTo(0), current.second)
++                        cDiff != 0 -> Pair(current.first, current.second + cDiff.compareTo(0))
++                        else -> break
++                    }
++                    if (!state.currentLevel.validCells.contains(nextPos) || newPath.contains(nextPos)) break
++                    
++                    newPath.add(nextPos)
++                    soundManager.playBlockPlace()
++                    current = nextPos
++                }
+             }
+         }
+@@ -192,6 +202,15 @@
+             isLevelComplete = isComplete
+         )
+     }
++
++    fun onOneLineDragEnded() {
++        val state = _oneLineGameState.value ?: return
++        if (!state.isLevelComplete) {
++            val initialPath = state.currentLevel.startCell?.let { listOf(it) } ?: emptyList()
++            _oneLineGameState.value = state.copy(path = initialPath)
++        }
++    }
+ 
+     fun startTicTacToeGame(difficulty: com.example.model.TicTacToeDifficulty) {

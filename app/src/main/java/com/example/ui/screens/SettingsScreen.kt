@@ -2,40 +2,20 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +38,8 @@ fun SettingsScreen(
     var vibrationEnabled by remember { mutableStateOf(viewModel.preferences.vibrationEnabled) }
     var showResetDialog by remember { mutableStateOf(false) }
 
+    val scrollState = rememberScrollState()
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -77,6 +59,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
+                .verticalScroll(scrollState)
         ) {
             // Top Bar
             Row(
@@ -104,121 +87,265 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Settings",
-                    fontSize = 24.sp,
+                    text = "SETTINGS",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    color = Color.White,
+                    letterSpacing = 1.sp
                 )
 
-                Box(modifier = Modifier.size(44.dp))
+                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Settings Container Card
-            Box(
+            // Audio & Haptics Card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF131F3F))
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .testTag("audio_settings_card"),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
             ) {
-                Column {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "AUDIO & HAPTICS",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF94A3B8),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     SettingsToggleRow(
                         icon = Icons.AutoMirrored.Filled.VolumeUp,
-                        title = "Sound",
+                        title = "Sound Effects",
                         checked = soundEnabled,
                         onCheckedChange = {
                             soundEnabled = it
-                            viewModel.toggleSound()
+                            viewModel.preferences.soundEnabled = it
                         },
                         tag = "sound_toggle"
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(
+                        color = Color(0xFF1E2D58),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
 
                     SettingsToggleRow(
                         icon = Icons.Default.MusicNote,
-                        title = "Music",
+                        title = "Ambient Music",
                         checked = musicEnabled,
                         onCheckedChange = {
                             musicEnabled = it
-                            viewModel.toggleMusic()
+                            viewModel.preferences.musicEnabled = it
+                            viewModel.soundManager.updateAmbientMusic()
                         },
                         tag = "music_toggle"
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(
+                        color = Color(0xFF1E2D58),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
 
                     SettingsToggleRow(
                         icon = Icons.Default.Vibration,
-                        title = "Vibration",
+                        title = "Haptic Vibration",
                         checked = vibrationEnabled,
                         onCheckedChange = {
                             vibrationEnabled = it
-                            viewModel.toggleVibration()
+                            viewModel.preferences.vibrationEnabled = it
                         },
                         tag = "vibration_toggle"
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Reset Progress Button
-            Button(
-                onClick = { showResetDialog = true },
+            // Game Statistics Card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .testTag("reset_progress_button"),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444).copy(alpha = 0.2f))
+                    .testTag("stats_card"),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.RestartAlt,
-                        contentDescription = null,
-                        tint = Color(0xFFEF4444)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = "Reset Progress",
-                        fontSize = 16.sp,
+                        text = "STATISTICS",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFEF4444)
+                        color = Color(0xFF94A3B8),
+                        letterSpacing = 1.sp
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Best Score",
+                                fontSize = 14.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                            Text(
+                                text = "${viewModel.preferences.bestScore}",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Highest Combo",
+                                fontSize = 14.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                            Text(
+                                text = "x${viewModel.preferences.maxCombo}",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFBBF24)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Total Lines Cleared",
+                                fontSize = 14.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                            Text(
+                                text = "${viewModel.preferences.totalLines}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Total Blocks Placed",
+                                fontSize = 14.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                            Text(
+                                text = "${viewModel.preferences.totalBlocks}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Subtly: DROX STUDIO & BLOCK SCORE
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Reset Game Progress Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
             ) {
-                Text(
-                    text = "BLOCK SCORE",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF94A3B8),
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "by DROX STUDIO",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF64748B),
-                    letterSpacing = 1.sp
-                )
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "DATA MANAGEMENT",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF94A3B8),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Reset all scores, unlocked adventure stages, and One Line puzzle levels back to default.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF94A3B8),
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { showResetDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("reset_progress_button"),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.RestartAlt,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Reset Progress",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // About Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color(0xFF60A5FA),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "BLOCK SCORE",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Version 1.2.0 • Offline Ready",
+                            fontSize = 12.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
-        // Confirmation Dialog for Reset
+        // Reset Confirmation Dialog
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
@@ -231,7 +358,7 @@ fun SettingsScreen(
                 },
                 text = {
                     Text(
-                        text = "This will clear your high score, adventure level progression, and stats. This cannot be undone.",
+                        text = "This will permanently erase your high score, adventure map progress, and One Line puzzle records. This action cannot be undone.",
                         color = Color(0xFFCBD5E1)
                     )
                 },
@@ -239,22 +366,21 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             viewModel.resetProgress()
-                            soundEnabled = viewModel.preferences.soundEnabled
-                            musicEnabled = viewModel.preferences.musicEnabled
-                            vibrationEnabled = viewModel.preferences.vibrationEnabled
                             showResetDialog = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
                     ) {
-                        Text("Reset", color = Color.White)
+                        Text("Reset Everything")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }) {
+                    TextButton(
+                        onClick = { showResetDialog = false }
+                    ) {
                         Text("Cancel", color = Color(0xFF94A3B8))
                     }
                 },
-                containerColor = Color(0xFF131F3F),
+                containerColor = Color(0xFF1E2D58),
                 shape = RoundedCornerShape(20.dp)
             )
         }
@@ -272,44 +398,35 @@ private fun SettingsToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF1E2D58)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color(0xFF60A5FA),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFF60A5FA),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
                 color = Color.White
             )
         }
-
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            modifier = Modifier.testTag(tag),
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = Color(0xFF2563EB),
                 uncheckedThumbColor = Color(0xFF94A3B8),
                 uncheckedTrackColor = Color(0xFF1E2D58)
-            ),
-            modifier = Modifier.testTag(tag)
+            )
         )
     }
 }

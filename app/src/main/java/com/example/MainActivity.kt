@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             MyApplicationTheme {
                 Surface(
@@ -44,7 +45,9 @@ class MainActivity : ComponentActivity() {
                             GameViewModel.Screen.CLASSIC_GAME,
                             GameViewModel.Screen.ADVENTURE_MAP,
                             GameViewModel.Screen.ACHIEVEMENTS,
-                            GameViewModel.Screen.SETTINGS -> {
+                            GameViewModel.Screen.SETTINGS,
+                            GameViewModel.Screen.ONE_LINE_GAME,
+                            GameViewModel.Screen.TIC_TAC_TOE_GAME -> {
                                 viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU)
                             }
                             GameViewModel.Screen.ADVENTURE_GAME -> {
@@ -65,6 +68,8 @@ class MainActivity : ComponentActivity() {
                         GameViewModel.Screen.ADVENTURE_GAME -> AdventureGameScreen(viewModel = viewModel)
                         GameViewModel.Screen.ACHIEVEMENTS -> AchievementsScreen(viewModel = viewModel)
                         GameViewModel.Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
+                        GameViewModel.Screen.ONE_LINE_GAME -> com.example.ui.screens.OneLineGameScreen(viewModel = viewModel)
+                        GameViewModel.Screen.TIC_TAC_TOE_GAME -> com.example.ui.screens.TicTacToeScreen(viewModel = viewModel)
                     }
                 }
             }
