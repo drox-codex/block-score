@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.IosCircularButton
+import com.example.ui.theme.IosGlassCard
+import com.example.ui.theme.iosPressEffect
 import com.example.viewmodel.GameViewModel
 
 @Composable
@@ -46,9 +50,9 @@ fun SettingsScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D1B3E),
-                        Color(0xFF09132C),
-                        Color(0xFF050B1B)
+                        Color(0xFF0C1635),
+                        Color(0xFF080E23),
+                        Color(0xFF050814)
                     )
                 )
             )
@@ -58,33 +62,23 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(scrollState)
         ) {
             // Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF192850))
-                        .clickable { viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU) }
-                        .testTag("settings_back_button"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                IosCircularButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    onClick = { viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU) },
+                    modifier = Modifier.testTag("settings_back_button")
+                )
 
                 Text(
                     text = "SETTINGS",
@@ -97,28 +91,30 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.size(44.dp))
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Audio & Haptics Card
-            Card(
+            // Section 1: Audio & Haptics (iOS Grouped Style)
+            Text(
+                text = "AUDIO & HAPTICS",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF94A3B8),
+                letterSpacing = 0.8.sp,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            )
+
+            IosGlassCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.90f),
+                borderColor = Color.White.copy(alpha = 0.12f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("audio_settings_card"),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
+                    .testTag("audio_settings_card")
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "AUDIO & HAPTICS",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    SettingsToggleRow(
+                Column(modifier = Modifier.padding(16.dp)) {
+                    IosSettingsToggleRow(
                         icon = Icons.AutoMirrored.Filled.VolumeUp,
+                        iconBg = Color(0xFF0284C7),
                         title = "Sound Effects",
                         checked = soundEnabled,
                         onCheckedChange = {
@@ -129,13 +125,14 @@ fun SettingsScreen(
                     )
 
                     HorizontalDivider(
-                        color = Color(0xFF1E2D58),
+                        color = Color.White.copy(alpha = 0.08f),
                         thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 6.dp)
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
                     )
 
-                    SettingsToggleRow(
+                    IosSettingsToggleRow(
                         icon = Icons.Default.MusicNote,
+                        iconBg = Color(0xFFEA580C),
                         title = "Ambient Music",
                         checked = musicEnabled,
                         onCheckedChange = {
@@ -147,14 +144,15 @@ fun SettingsScreen(
                     )
 
                     HorizontalDivider(
-                        color = Color(0xFF1E2D58),
+                        color = Color.White.copy(alpha = 0.08f),
                         thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 6.dp)
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
                     )
 
-                    SettingsToggleRow(
+                    IosSettingsToggleRow(
                         icon = Icons.Default.Vibration,
-                        title = "Haptic Vibration",
+                        iconBg = Color(0xFF10B981),
+                        title = "Haptic Feedback",
                         checked = vibrationEnabled,
                         onCheckedChange = {
                             vibrationEnabled = it
@@ -165,26 +163,27 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Game Statistics Card
-            Card(
+            // Section 2: Statistics (Apple Health / Activity style)
+            Text(
+                text = "STATISTICS & RECORDS",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF94A3B8),
+                letterSpacing = 0.8.sp,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            )
+
+            IosGlassCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.90f),
+                borderColor = Color.White.copy(alpha = 0.12f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("stats_card"),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
+                    .testTag("stats_card")
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "STATISTICS",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -192,32 +191,36 @@ fun SettingsScreen(
                         Column {
                             Text(
                                 text = "Best Score",
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
                                 text = "${viewModel.preferences.bestScore}",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black,
                                 color = Color.White
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 text = "Highest Combo",
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
                                 text = "x${viewModel.preferences.maxCombo}",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black,
                                 color = Color(0xFFFBBF24)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(
+                        color = Color.White.copy(alpha = 0.08f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -226,77 +229,25 @@ fun SettingsScreen(
                         Column {
                             Text(
                                 text = "Total Lines Cleared",
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
                                 text = "${viewModel.preferences.totalLines}",
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 text = "Total Blocks Placed",
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
                                 text = "${viewModel.preferences.totalBlocks}",
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Reset Game Progress Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "DATA MANAGEMENT",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Reset all scores, unlocked adventure stages, and One Line puzzle levels back to default.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF94A3B8),
-                        lineHeight = 18.sp
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { showResetDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("reset_progress_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.RestartAlt,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Reset Progress",
-                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
@@ -305,31 +256,100 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // About Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131F3F))
+            // Section 3: Data Management
+            Text(
+                text = "DATA MANAGEMENT",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF94A3B8),
+                letterSpacing = 0.8.sp,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            )
+
+            IosGlassCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.90f),
+                borderColor = Color.White.copy(alpha = 0.12f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Text(
+                        text = "Reset all scores, unlocked adventure stages, and One Line puzzle levels back to default.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF94A3B8),
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .iosPressEffect { showResetDialog = true }
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.18f))
+                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                            .testTag("reset_progress_button"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.RestartAlt,
+                                contentDescription = null,
+                                tint = Color(0xFFF87171),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Reset Game Progress",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF87171)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Section 4: About
+            IosGlassCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.90f),
+                borderColor = Color.White.copy(alpha = 0.12f),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = Color(0xFF60A5FA),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF6366F1)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.width(14.dp))
+
                     Column {
                         Text(
                             text = "BLOCK SCORE",
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
@@ -342,54 +362,63 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(36.dp))
         }
 
-        // Reset Confirmation Dialog
+        // Reset Confirmation Dialog (iOS Alert Style)
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
                 title = {
                     Text(
                         text = "Reset All Progress?",
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
                 },
                 text = {
                     Text(
                         text = "This will permanently erase your high score, adventure map progress, and One Line puzzle records. This action cannot be undone.",
-                        color = Color(0xFFCBD5E1)
+                        color = Color(0xFFCBD5E1),
+                        fontSize = 14.sp
                     )
                 },
                 confirmButton = {
-                    Button(
+                    TextButton(
                         onClick = {
                             viewModel.resetProgress()
                             showResetDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                        }
                     ) {
-                        Text("Reset Everything")
+                        Text(
+                            text = "Reset Everything",
+                            color = Color(0xFFEF4444),
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showResetDialog = false }
                     ) {
-                        Text("Cancel", color = Color(0xFF94A3B8))
+                        Text(
+                            text = "Cancel",
+                            color = Color(0xFF94A3B8),
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 },
-                containerColor = Color(0xFF1E2D58),
-                shape = RoundedCornerShape(20.dp)
+                containerColor = Color(0xFF152042),
+                shape = RoundedCornerShape(26.dp)
             )
         }
     }
 }
 
 @Composable
-private fun SettingsToggleRow(
+private fun IosSettingsToggleRow(
     icon: ImageVector,
+    iconBg: Color,
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -398,22 +427,30 @@ private fun SettingsToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color(0xFF60A5FA),
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
             Text(
                 text = title,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.SemiBold,
                 color = Color.White
             )
         }
@@ -423,9 +460,9 @@ private fun SettingsToggleRow(
             modifier = Modifier.testTag(tag),
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF2563EB),
-                uncheckedThumbColor = Color(0xFF94A3B8),
-                uncheckedTrackColor = Color(0xFF1E2D58)
+                checkedTrackColor = Color(0xFF34D399),
+                uncheckedThumbColor = Color.White.copy(alpha = 0.8f),
+                uncheckedTrackColor = Color.White.copy(alpha = 0.15f)
             )
         )
     }

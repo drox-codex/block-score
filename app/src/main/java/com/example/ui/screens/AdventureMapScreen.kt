@@ -3,20 +3,7 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -33,7 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -41,6 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AdventureLevel
+import com.example.ui.theme.IosCircularButton
+import com.example.ui.theme.IosGlassCard
+import com.example.ui.theme.iosPressEffect
 import com.example.viewmodel.GameViewModel
 
 @Composable
@@ -69,9 +58,9 @@ fun AdventureMapScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D1B3E),
-                        Color(0xFF09132C),
-                        Color(0xFF050B1B)
+                        Color(0xFF0C1635),
+                        Color(0xFF080E23),
+                        Color(0xFF050814)
                     )
                 )
             )
@@ -81,58 +70,51 @@ fun AdventureMapScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 20.dp)
         ) {
-            // Top Bar
+            // Top Bar (iOS Header)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF192850))
-                        .clickable { viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU) }
-                        .testTag("map_back_button"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Text(
-                    text = "Adventure",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                IosCircularButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    onClick = { viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU) },
+                    modifier = Modifier.testTag("adventure_map_back_button")
                 )
 
-                // Total Stars badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF192850))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                Text(
+                    text = "ADVENTURE",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
+
+                // Total Stars Capsule
+                IosGlassCard(
+                    shape = RoundedCornerShape(16.dp),
+                    backgroundColor = Color(0xFF141F3C).copy(alpha = 0.85f),
+                    borderColor = Color(0xFFFBBF24).copy(alpha = 0.35f)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Star,
-                            contentDescription = null,
+                            contentDescription = "Stars",
                             tint = Color(0xFFFBBF24),
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "$totalStars",
-                            fontSize = 15.sp,
+                            text = "$totalStars / 90",
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
@@ -140,16 +122,65 @@ fun AdventureMapScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Progress Banner
+            IosGlassCard(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.85f),
+                borderColor = Color.White.copy(alpha = 0.12f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "CURRENT STAGE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF94A3B8),
+                            letterSpacing = 0.8.sp
+                        )
+                        Text(
+                            text = "Stage $unlockedLevel of 30",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
 
-            // Level Grid (100 Levels)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF2563EB).copy(alpha = 0.25f))
+                            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "${((unlockedLevel.toFloat() / 30f) * 100).toInt()}% Done",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Level Grid (3 columns of iOS squircle nodes)
             LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
+                columns = GridCells.Fixed(3),
                 state = gridState,
-                contentPadding = PaddingValues(bottom = 24.dp),
+                contentPadding = PaddingValues(vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize().testTag("adventure_level_grid")
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(AdventureLevel.TOTAL_LEVELS) { index ->
                     val levelNum = index + 1
@@ -157,43 +188,46 @@ fun AdventureMapScreen(
                     val isCurrent = levelNum == unlockedLevel
                     val stars = viewModel.preferences.getLevelStars(levelNum)
 
-                    Box(
+                    IosGlassCard(
+                        shape = RoundedCornerShape(22.dp),
+                        backgroundColor = when {
+                            isCurrent -> Color(0xFF1D4ED8).copy(alpha = 0.75f)
+                            isUnlocked -> Color(0xFF142042).copy(alpha = 0.85f)
+                            else -> Color(0xFF0D1426).copy(alpha = 0.55f)
+                        },
+                        borderColor = when {
+                            isCurrent -> Color(0xFF60A5FA).copy(alpha = 0.8f)
+                            isUnlocked -> Color.White.copy(alpha = 0.15f)
+                            else -> Color.White.copy(alpha = 0.05f)
+                        },
                         modifier = Modifier
-                            .height(80.dp)
-                            .shadow(if (isCurrent) 8.dp else 2.dp, RoundedCornerShape(18.dp))
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(
-                                when {
-                                    isCurrent -> Color(0xFF2563EB)
-                                    isUnlocked -> Color(0xFF192850)
-                                    else -> Color(0xFF111A33)
+                            .aspectRatio(0.95f)
+                            .iosPressEffect(enabled = isUnlocked) {
+                                if (isUnlocked) {
+                                    viewModel.startAdventureLevel(levelNum)
                                 }
-                            )
-                            .border(
-                                width = if (isCurrent) 2.dp else 1.dp,
-                                color = if (isCurrent) Color(0xFF60A5FA) else if (isUnlocked) Color(0xFF293B6C) else Color(0xFF1A2645),
-                                shape = RoundedCornerShape(18.dp)
-                            )
-                            .clickable(enabled = isUnlocked) {
-                                viewModel.startAdventureLevel(levelNum)
                             }
-                            .testTag("level_node_$levelNum"),
-                        contentAlignment = Alignment.Center
+                            .testTag("level_node_$levelNum")
                     ) {
                         Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
                             if (isUnlocked) {
                                 Text(
                                     text = "$levelNum",
-                                    fontSize = 20.sp,
+                                    fontSize = 22.sp,
                                     fontWeight = FontWeight.Black,
                                     color = Color.White
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     for (s in 1..3) {
@@ -201,7 +235,7 @@ fun AdventureMapScreen(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
                                             tint = if (s <= stars) Color(0xFFFBBF24) else Color(0xFF334155),
-                                            modifier = Modifier.size(12.dp)
+                                            modifier = Modifier.size(13.dp)
                                         )
                                     }
                                 }
@@ -210,12 +244,12 @@ fun AdventureMapScreen(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = "Locked",
                                     tint = Color(0xFF475569),
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "$levelNum",
-                                    fontSize = 11.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF475569)
                                 )

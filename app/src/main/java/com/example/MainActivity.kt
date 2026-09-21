@@ -6,6 +6,15 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,16 +69,49 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    when (currentScreen) {
-                        GameViewModel.Screen.SPLASH -> SplashScreen(viewModel = viewModel)
-                        GameViewModel.Screen.MAIN_MENU -> MainMenuScreen(viewModel = viewModel)
-                        GameViewModel.Screen.CLASSIC_GAME -> ClassicGameScreen(viewModel = viewModel)
-                        GameViewModel.Screen.ADVENTURE_MAP -> AdventureMapScreen(viewModel = viewModel)
-                        GameViewModel.Screen.ADVENTURE_GAME -> AdventureGameScreen(viewModel = viewModel)
-                        GameViewModel.Screen.ACHIEVEMENTS -> AchievementsScreen(viewModel = viewModel)
-                        GameViewModel.Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
-                        GameViewModel.Screen.ONE_LINE_GAME -> com.example.ui.screens.OneLineGameScreen(viewModel = viewModel)
-                        GameViewModel.Screen.TIC_TAC_TOE_GAME -> com.example.ui.screens.TicTacToeScreen(viewModel = viewModel)
+                    // Native iOS UINavigationController style spring transition
+                    AnimatedContent(
+                        targetState = currentScreen,
+                        transitionSpec = {
+                            val isBack = (targetState == GameViewModel.Screen.MAIN_MENU) ||
+                                    (targetState == GameViewModel.Screen.ADVENTURE_MAP && initialState == GameViewModel.Screen.ADVENTURE_GAME)
+                            if (isBack) {
+                                (slideInHorizontally(
+                                    initialOffsetX = { -it / 3 },
+                                    animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow)
+                                ) + fadeIn(animationSpec = tween(220)))
+                                    .togetherWith(
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow)
+                                        ) + fadeOut(animationSpec = tween(180))
+                                    )
+                            } else {
+                                (slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow)
+                                ) + fadeIn(animationSpec = tween(220)))
+                                    .togetherWith(
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it / 3 },
+                                            animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow)
+                                        ) + fadeOut(animationSpec = tween(180))
+                                    )
+                            }
+                        },
+                        label = "iosScreenTransition"
+                    ) { targetScreen ->
+                        when (targetScreen) {
+                            GameViewModel.Screen.SPLASH -> SplashScreen(viewModel = viewModel)
+                            GameViewModel.Screen.MAIN_MENU -> MainMenuScreen(viewModel = viewModel)
+                            GameViewModel.Screen.CLASSIC_GAME -> ClassicGameScreen(viewModel = viewModel)
+                            GameViewModel.Screen.ADVENTURE_MAP -> AdventureMapScreen(viewModel = viewModel)
+                            GameViewModel.Screen.ADVENTURE_GAME -> AdventureGameScreen(viewModel = viewModel)
+                            GameViewModel.Screen.ACHIEVEMENTS -> AchievementsScreen(viewModel = viewModel)
+                            GameViewModel.Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
+                            GameViewModel.Screen.ONE_LINE_GAME -> com.example.ui.screens.OneLineGameScreen(viewModel = viewModel)
+                            GameViewModel.Screen.TIC_TAC_TOE_GAME -> com.example.ui.screens.TicTacToeScreen(viewModel = viewModel)
+                        }
                     }
                 }
             }

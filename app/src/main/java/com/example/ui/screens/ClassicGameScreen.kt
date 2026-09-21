@@ -45,6 +45,8 @@ import com.example.ui.components.FloatingTextOverlay
 import com.example.ui.components.ParticleOverlay
 import com.example.ui.components.PieceView
 import com.example.ui.components.TrayView
+import com.example.ui.theme.IosCircularButton
+import com.example.ui.theme.IosGlassCard
 import com.example.viewmodel.GameViewModel
 import kotlin.math.roundToInt
 
@@ -62,9 +64,9 @@ fun ClassicGameScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D1B3E),
-                        Color(0xFF09132C),
-                        Color(0xFF050B1B)
+                        Color(0xFF0C1635),
+                        Color(0xFF080E23),
+                        Color(0xFF050814)
                     )
                 )
             )
@@ -74,6 +76,7 @@ fun ClassicGameScreen(
         val screenWidthPx = constraints.maxWidth.toFloat()
         val screenHeightPx = constraints.maxHeight.toFloat()
         val density = androidx.compose.ui.platform.LocalDensity.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -81,7 +84,7 @@ fun ClassicGameScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // TOP BAR
+            // TOP BAR (iOS style)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,80 +92,74 @@ fun ClassicGameScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Home/Back button
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF192850))
-                        .clickable { viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU) }
-                        .testTag("back_to_menu_button"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Menu",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                // Home/Back button (iOS Circular Button)
+                IosCircularButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back to Menu",
+                    onClick = { viewModel.navigateTo(GameViewModel.Screen.MAIN_MENU) },
+                    modifier = Modifier.testTag("back_to_menu_button")
+                )
 
-                // Scores Row
+                // Scores Row in Apple Frosted Glass Capsules
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Current Score
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF192850))
-                            .padding(horizontal = 18.dp, vertical = 6.dp)
+                    // Current Score Capsule
+                    IosGlassCard(
+                        shape = RoundedCornerShape(16.dp),
+                        backgroundColor = Color(0xFF141F3C).copy(alpha = 0.85f),
+                        borderColor = Color(0xFF38BDF8).copy(alpha = 0.25f)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
                                 text = "SCORE",
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF94A3B8),
-                                letterSpacing = 0.5.sp
+                                letterSpacing = 0.8.sp
                             )
                             Text(
                                 text = "${gameState.score}",
-                                fontSize = 22.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Color.White
                             )
                         }
                     }
 
-                    // Best Score
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF192850))
-                            .padding(horizontal = 18.dp, vertical = 6.dp)
+                    // Best Score Capsule
+                    IosGlassCard(
+                        shape = RoundedCornerShape(16.dp),
+                        backgroundColor = Color(0xFF141F3C).copy(alpha = 0.85f),
+                        borderColor = Color(0xFFFBBF24).copy(alpha = 0.25f)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.EmojiEvents,
                                     contentDescription = null,
                                     tint = Color(0xFFFBBF24),
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "BEST",
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF94A3B8),
-                                    letterSpacing = 0.5.sp
+                                    letterSpacing = 0.8.sp
                                 )
                             }
                             Text(
                                 text = "${gameState.bestScore}",
-                                fontSize = 22.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFFFBBF24)
                             )
@@ -170,46 +167,24 @@ fun ClassicGameScreen(
                     }
                 }
 
-                // Action buttons
+                // Action buttons (Settings & Restart)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Settings button
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF192850))
-                            .clickable { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) }
-                            .testTag("settings_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    IosCircularButton(
+                        icon = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        onClick = { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) },
+                        modifier = Modifier.testTag("settings_button")
+                    )
 
-                    // Restart button
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF192850))
-                            .clickable { viewModel.startNewClassicGame() }
-                            .testTag("restart_game_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Restart Game",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    IosCircularButton(
+                        icon = Icons.Default.Refresh,
+                        contentDescription = "Restart Game",
+                        onClick = { viewModel.startNewClassicGame() },
+                        modifier = Modifier.testTag("restart_game_button")
+                    )
                 }
             }
 

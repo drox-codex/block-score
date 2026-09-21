@@ -48,6 +48,8 @@ import com.example.ui.components.FloatingTextOverlay
 import com.example.ui.components.ParticleOverlay
 import com.example.ui.components.PieceView
 import com.example.ui.components.TrayView
+import com.example.ui.theme.IosCircularButton
+import com.example.ui.theme.IosGlassCard
 import com.example.viewmodel.GameViewModel
 import kotlin.math.roundToInt
 
@@ -68,9 +70,9 @@ fun AdventureGameScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D1B3E),
-                        Color(0xFF09132C),
-                        Color(0xFF050B1B)
+                        Color(0xFF0C1635),
+                        Color(0xFF080E23),
+                        Color(0xFF050814)
                     )
                 )
             )
@@ -80,6 +82,7 @@ fun AdventureGameScreen(
         val screenWidthPx = constraints.maxWidth.toFloat()
         val screenHeightPx = constraints.maxHeight.toFloat()
         val density = androidx.compose.ui.platform.LocalDensity.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -87,7 +90,7 @@ fun AdventureGameScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // TOP BAR
+            // TOP BAR (iOS style)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -96,99 +99,103 @@ fun AdventureGameScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Back to Map
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF192850))
-                        .clickable { viewModel.navigateTo(GameViewModel.Screen.ADVENTURE_MAP) }
-                        .testTag("adventure_back_button"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Map",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                IosCircularButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back to Map",
+                    onClick = { viewModel.navigateTo(GameViewModel.Screen.ADVENTURE_MAP) },
+                    modifier = Modifier.testTag("back_to_map_button")
+                )
 
-                // Objective Banner
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF192850))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                // Level Title & Objective Capsule
+                IosGlassCard(
+                    shape = RoundedCornerShape(16.dp),
+                    backgroundColor = Color(0xFF141F3C).copy(alpha = 0.85f),
+                    borderColor = Color(0xFF38BDF8).copy(alpha = 0.25f),
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = "LEVEL ${gameState.currentAdventureLevel}",
-                            fontSize = 12.sp,
+                            text = "LEVEL ${level.levelNumber}",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF60A5FA),
-                            letterSpacing = 0.5.sp
+                            color = Color(0xFF94A3B8),
+                            letterSpacing = 0.8.sp
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "${level.objectiveDescription} (${gameState.adventureProgress}/${level.targetValue})",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
+                            text = when (level.objectiveType) {
+                                ObjectiveType.SCORE -> "${gameState.score} / ${level.targetValue} PTS"
+                                ObjectiveType.LINES -> "${gameState.adventureProgress} / ${level.targetValue} LINES"
+                                ObjectiveType.COMBO -> "Combo x${level.targetValue}"
+                            },
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = { progressFraction },
-                            modifier = Modifier
-                                .width(160.dp)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = Color(0xFF10B981),
-                            trackColor = Color(0xFF263765),
-                            strokeCap = StrokeCap.Round
                         )
                     }
                 }
 
-                // Action buttons
+                // Action buttons (Settings & Restart)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Settings button
-                    Box(
+                    IosCircularButton(
+                        icon = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        onClick = { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) },
+                        modifier = Modifier.testTag("settings_button")
+                    )
+
+                    IosCircularButton(
+                        icon = Icons.Default.Refresh,
+                        contentDescription = "Restart Level",
+                        onClick = { viewModel.startAdventureLevel(gameState.currentAdventureLevel) },
+                        modifier = Modifier.testTag("restart_level_button")
+                    )
+                }
+            }
+
+            // Objective Progress Bar (iOS Frosted Pill)
+            IosGlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 2.dp),
+                shape = RoundedCornerShape(14.dp),
+                backgroundColor = Color(0xFF131D38).copy(alpha = 0.6f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (gameState.isLevelWon) Color(0xFF10B981) else Color(0xFF38BDF8),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    LinearProgressIndicator(
+                        progress = { progressFraction },
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF192850))
-                            .clickable { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) }
-                            .testTag("settings_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    
-                    // Restart Level
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF192850))
-                            .clickable { viewModel.startAdventureLevel(gameState.currentAdventureLevel) }
-                            .testTag("restart_adventure_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Restart Level",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                            .weight(1f)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = if (gameState.isLevelWon) Color(0xFF10B981) else Color(0xFF2563EB),
+                        trackColor = Color(0xFF1E293B),
+                        strokeCap = StrokeCap.Round
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "${(progressFraction * 100).toInt()}%",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
 
@@ -225,7 +232,7 @@ fun AdventureGameScreen(
         // Floating Text Overlay
         FloatingTextOverlay(floatingTexts = gameState.floatingTexts)
 
-        // Dragged piece following finger directly with screen boundary clamping
+        // Dragged piece following finger
         if (dragState.isDragging && dragState.piece != null) {
             val piece = dragState.piece!!
             val cellSizeDp = 34.dp
@@ -233,12 +240,10 @@ fun AdventureGameScreen(
             val pieceWidthPx = piece.width * cellSizePx
             val pieceHeightPx = piece.height * cellSizePx
 
-            // Slightly elevated above the finger so blocks are clearly visible
             val liftOffset = GameViewModel.DRAG_LIFT_OFFSET_PX
             val targetX = dragState.touchPosition.x - (pieceWidthPx / 2f)
             val targetY = dragState.touchPosition.y - liftOffset - (pieceHeightPx / 2f)
 
-            // Clamp so the piece NEVER exits the screen boundaries
             val clampedX = targetX.coerceIn(0f, (screenWidthPx - pieceWidthPx).coerceAtLeast(0f))
             val clampedY = targetY.coerceIn(0f, (screenHeightPx - pieceHeightPx).coerceAtLeast(0f))
 
@@ -256,14 +261,15 @@ fun AdventureGameScreen(
             }
         }
 
-        // Game Over or Victory Dialog
+        // Game Over / Victory Dialog
         if (gameState.isGameOver || gameState.isLevelWon) {
+            val nextLevel = gameState.currentAdventureLevel + 1
             GameOverDialog(
                 gameState = gameState,
                 onRestart = { viewModel.startAdventureLevel(gameState.currentAdventureLevel) },
                 onHome = { viewModel.navigateTo(GameViewModel.Screen.ADVENTURE_MAP) },
-                onNextLevel = if (gameState.isLevelWon && gameState.currentAdventureLevel < AdventureLevel.TOTAL_LEVELS) {
-                    { viewModel.startAdventureLevel(gameState.currentAdventureLevel + 1) }
+                onNextLevel = if (gameState.isLevelWon && nextLevel <= 30) {
+                    { viewModel.startAdventureLevel(nextLevel) }
                 } else null
             )
         }
