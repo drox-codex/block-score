@@ -58,6 +58,11 @@ jobs:
           fi
           ls -lh "$KEYSTORE_FILE"
 
+      - name: Ensure Environment Files
+        run: |
+          touch "$GITHUB_WORKSPACE/.env.example"
+          touch "$GITHUB_WORKSPACE/.env"
+
       - name: Build Release APK
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks

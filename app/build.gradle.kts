@@ -77,6 +77,16 @@ android {
   }
 }
 
+// Ensure .env and .env.example exist so Secrets Gradle Plugin doesn't fail on CI or fresh clones
+val envExampleFile = rootProject.file(".env.example")
+if (!envExampleFile.exists()) {
+  envExampleFile.writeText("# Environment Variables\n")
+}
+val envFile = rootProject.file(".env")
+if (!envFile.exists()) {
+  envFile.writeText("# Local Environment Variables\n")
+}
+
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
 secrets {
