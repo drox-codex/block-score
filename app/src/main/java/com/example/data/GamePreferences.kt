@@ -141,6 +141,30 @@ class GamePreferences(private val context: Context) {
         get() = getSecureInt("one_line_level", 1, 100)
         set(value) = putSecureInt("one_line_level", ScoreValidator.sanitizeLevel(value))
 
+    var currentTheme: String
+        get() = prefs.getString("selected_theme", "aqua_glass") ?: "aqua_glass"
+        set(value) = prefs.edit().putString("selected_theme", value).apply()
+
+    var hintsCount: Int
+        get() = getSecureInt("hints_count", 5, 999)
+        set(value) = putSecureInt("hints_count", value.coerceIn(0, 999))
+
+    var blitzBestScore: Int
+        get() = getSecureInt("blitz_best_score", 0, ScoreValidator.MAX_POSSIBLE_SCORE)
+        set(value) = putSecureInt("blitz_best_score", ScoreValidator.sanitizeScore(value))
+
+    var dailyStreak: Int
+        get() = getSecureInt("daily_streak", 0, 9999)
+        set(value) = putSecureInt("daily_streak", value.coerceIn(0, 9999))
+
+    var lastDailyCompletedDate: String
+        get() = prefs.getString("last_daily_completed_date", "") ?: ""
+        set(value) = prefs.edit().putString("last_daily_completed_date", value).apply()
+
+    var lastSpinDate: String
+        get() = prefs.getString("last_spin_date", "") ?: ""
+        set(value) = prefs.edit().putString("last_spin_date", value).apply()
+
     fun addStats(linesCleared: Int, blocksPlaced: Int, combo: Int) {
         try {
             val safeLines = ScoreValidator.sanitizeStat(linesCleared)
@@ -164,6 +188,8 @@ class GamePreferences(private val context: Context) {
             musicEnabled = true
             vibrationEnabled = true
             unlockedLevel = 1
+            currentTheme = "aqua_glass"
+            hintsCount = 5
         } catch (_: Exception) {
             // Graceful fallback
         }

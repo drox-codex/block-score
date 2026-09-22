@@ -5,7 +5,10 @@ import androidx.compose.ui.graphics.Color
 
 enum class GameMode {
     CLASSIC,
-    ADVENTURE
+    ADVENTURE,
+    BLITZ,
+    ZEN,
+    DAILY
 }
 
 data class Particle(
@@ -46,6 +49,11 @@ data class GameState(
     val currentAdventureLevel: Int = 1,
     val adventureProgress: Int = 0,
     val adventureStars: Int = 0,
+    val blitzTimeRemainingSec: Int = 90,
+    val dailyTargetLines: Int = 15,
+    val dailyCurrentLines: Int = 0,
+    val dailyMovesRemaining: Int = 25,
+    val canUndo: Boolean = false,
     val clearingRows: Set<Int> = emptySet(),
     val clearingCols: Set<Int> = emptySet(),
     val particles: List<Particle> = emptyList(),
@@ -54,6 +62,9 @@ data class GameState(
 ) {
     val isClassic: Boolean get() = gameMode == GameMode.CLASSIC
     val isAdventure: Boolean get() = gameMode == GameMode.ADVENTURE
+    val isBlitz: Boolean get() = gameMode == GameMode.BLITZ
+    val isZen: Boolean get() = gameMode == GameMode.ZEN
+    val isDaily: Boolean get() = gameMode == GameMode.DAILY
 
     companion object {
         const val BOARD_SIZE = 8

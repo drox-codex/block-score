@@ -274,24 +274,19 @@ fun SettingsScreen(
                 borderColor = Color.White.copy(alpha = 0.12f),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Reset all scores, unlocked adventure stages, and One Line puzzle levels back to default.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF94A3B8),
-                        lineHeight = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
                             .iosPressEffect { showResetDialog = true }
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFEF4444).copy(alpha = 0.18f))
-                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
                             .testTag("reset_progress_button"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -304,7 +299,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Reset Game Progress",
+                                text = "Reset Progress",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFF87171)

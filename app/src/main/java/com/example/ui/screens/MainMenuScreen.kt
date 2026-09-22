@@ -14,21 +14,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Games
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,112 +48,126 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.R
+import com.example.model.AppTheme
+import com.example.model.DailyChallenge
+import com.example.model.SpinReward
+import com.example.model.SpinWheelConfig
+import com.example.ui.components.LuckyWheelDialog
 import com.example.ui.theme.IosCircularButton
 import com.example.ui.theme.IosGameActionCard
 import com.example.ui.theme.IosGlassCard
+import com.example.ui.theme.IosWaterGlassCard
 import com.example.ui.theme.iosPressEffect
 import com.example.viewmodel.GameViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainMenuScreen(
     viewModel: GameViewModel,
     modifier: Modifier = Modifier
 ) {
+    val currentTheme by viewModel.currentTheme.collectAsState()
     val bestScore = viewModel.preferences.bestScore
+    val blitzBest = viewModel.preferences.blitzBestScore
+    val dailyStreak = viewModel.preferences.dailyStreak
+    val today = DailyChallenge.getTodayDate()
+    val isDailyCompleted = viewModel.preferences.lastDailyCompletedDate == today
+
     var showMoreGamesDialog by remember { mutableStateOf(false) }
     var showTicTacToeDifficultyDialog by remember { mutableStateOf(false) }
+    var showLuckyWheelDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Subtle ambient breathing glow animation behind the logo
-    val infiniteTransition = rememberInfiniteTransition(label = "ambientLogoPulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "ambientPulse")
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.45f,
+        initialValue = 0.20f,
+        targetValue = 0.40f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = FastOutSlowInEasing),
+            animation = tween(2800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseAlpha"
     )
 
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0C1635),
-                        Color(0xFF080E23),
-                        Color(0xFF050814)
-                    )
+                    colors = currentTheme.backgroundGradient
                 )
             )
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Ambient iOS background orbs (top-center cyan glow, right indigo glow)
-        Box(
-            modifier = Modifier
-                .size(340.dp)
-                .align(Alignment.TopCenter)
-                .offset(y = (-80).dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF2563EB).copy(alpha = pulseAlpha),
-                            Color(0xFF1D4ED8).copy(alpha = pulseAlpha * 0.4f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
-        // Top Header: iOS Navigation buttons (Settings & Achievements)
+        // TOP HEADER BAR (Directly inside root column so clicks are never obscured)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 14.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Achievements Trophy button
-            IosCircularButton(
-                icon = Icons.Default.EmojiEvents,
-                contentDescription = "Achievements",
-                iconTint = Color(0xFFFBBF24),
-                onClick = { viewModel.navigateTo(GameViewModel.Screen.ACHIEVEMENTS) },
-                modifier = Modifier.testTag("achievements_button")
-            )
+            // Left Group: Trophy Achievements & Lucky Spin
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                IosCircularButton(
+                    icon = Icons.Default.EmojiEvents,
+                    contentDescription = "Achievements",
+                    iconTint = Color(0xFFFBBF24),
+                    onClick = { viewModel.navigateTo(GameViewModel.Screen.ACHIEVEMENTS) },
+                    modifier = Modifier.testTag("achievements_button")
+                )
 
-            // Settings Gear button
-            IosCircularButton(
-                icon = Icons.Default.Settings,
-                contentDescription = "Settings",
-                iconTint = Color(0xFFE2E8F0),
-                onClick = { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) },
-                modifier = Modifier.testTag("settings_button")
-            )
+                IosCircularButton(
+                    icon = Icons.Default.Casino,
+                    contentDescription = "Lucky Spin",
+                    iconTint = Color(0xFFEC4899),
+                    onClick = { showLuckyWheelDialog = true },
+                    modifier = Modifier.testTag("lucky_wheel_button")
+                )
+            }
+
+            // Right Group: Theme Switcher & Settings
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                IosCircularButton(
+                    icon = Icons.Default.Palette,
+                    contentDescription = "Themes",
+                    iconTint = currentTheme.primaryAccent,
+                    onClick = { showThemeDialog = true },
+                    modifier = Modifier.testTag("theme_selector_button")
+                )
+
+                IosCircularButton(
+                    icon = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    iconTint = Color(0xFFE2E8F0),
+                    onClick = { viewModel.navigateTo(GameViewModel.Screen.SETTINGS) },
+                    modifier = Modifier.testTag("settings_button")
+                )
+            }
         }
 
-        // Center Content
+        // SCROLLABLE CENTER CONTENT
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // App Logo Icon with continuous iOS squircle shape and subtle drop shadow
+            // App Logo Icon with continuous iOS squircle shape and specular refraction
             Box(
                 modifier = Modifier
-                    .size(116.dp)
-                    .shadow(16.dp, RoundedCornerShape(28.dp), ambientColor = Color(0xFF2563EB), spotColor = Color(0xFF2563EB))
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Color(0xFF152248))
-                    .border(1.5.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(28.dp)),
+                    .size(108.dp)
+                    .shadow(16.dp, RoundedCornerShape(26.dp), ambientColor = currentTheme.primaryAccent, spotColor = currentTheme.primaryAccent)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(currentTheme.glassBackground)
+                    .border(1.5.dp, currentTheme.glassBorder, RoundedCornerShape(26.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -156,28 +177,28 @@ fun MainMenuScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // BLOCK SCORE Title with Apple SF Pro bold weight and refined tracking
             Text(
                 text = "BLOCK SCORE",
-                fontSize = 32.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
-                letterSpacing = 1.8.sp,
+                letterSpacing = 1.6.sp,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Best Score Card - Apple Fitness / Game Center pill
-            IosGlassCard(
+            // Best Score Glass Pill
+            IosWaterGlassCard(
                 shape = RoundedCornerShape(20.dp),
-                backgroundColor = Color(0xFF162347).copy(alpha = 0.85f),
+                accentColor = currentTheme.primaryAccent,
+                backgroundColor = currentTheme.glassBackground,
                 modifier = Modifier.testTag("best_score_card")
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 9.dp),
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -185,37 +206,36 @@ fun MainMenuScreen(
                         imageVector = Icons.Default.EmojiEvents,
                         contentDescription = "Best Score",
                         tint = Color(0xFFFBBF24),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "BEST SCORE",
-                        fontSize = 12.sp,
+                        text = "RECORD",
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF94A3B8),
                         letterSpacing = 0.8.sp
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "$bestScore",
-                        fontSize = 19.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
                         color = Color.White
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // iOS Arcade Cards Column
+            // GAME MODES COLUMN
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Adventure Mode Card
+                // 1. Adventure Mode
                 IosGameActionCard(
                     title = "Adventure",
-                    subtitle = "Conquer 30 progressive puzzle stages",
                     icon = Icons.Default.Public,
                     accentColor = Color(0xFF2563EB),
                     trailingBadge = "Stage ${viewModel.preferences.unlockedLevel}/30",
@@ -223,13 +243,12 @@ fun MainMenuScreen(
                     modifier = Modifier.testTag("adventure_button")
                 )
 
-                // Classic 8x8 Mode Card
+                // 2. Classic 8x8 Mode
                 IosGameActionCard(
                     title = "Classic 8x8",
-                    subtitle = "Infinite polyomino block matching",
                     icon = Icons.Default.PlayArrow,
                     accentColor = Color(0xFF10B981),
-                    trailingBadge = if (bestScore > 0) "Record: $bestScore" else "Play",
+                    trailingBadge = if (bestScore > 0) "$bestScore" else "Play",
                     onClick = {
                         viewModel.startNewClassicGame()
                         viewModel.navigateTo(GameViewModel.Screen.CLASSIC_GAME)
@@ -237,77 +256,126 @@ fun MainMenuScreen(
                     modifier = Modifier.testTag("classic_button")
                 )
 
-                // More Games Card
+                // 3. Daily Challenge
+                IosGameActionCard(
+                    title = "Daily Challenge",
+                    icon = Icons.Default.DateRange,
+                    accentColor = Color(0xFFF59E0B),
+                    trailingBadge = if (isDailyCompleted) "Done 🔥$dailyStreak" else "Day 🔥$dailyStreak",
+                    onClick = {
+                        viewModel.startDailyChallenge()
+                    },
+                    modifier = Modifier.testTag("daily_challenge_button")
+                )
+
+                // 4. Blitz 90s Speed Mode
+                IosGameActionCard(
+                    title = "Blitz 90s",
+                    icon = Icons.Default.Bolt,
+                    accentColor = Color(0xFFEC4899),
+                    trailingBadge = if (blitzBest > 0) "Top: $blitzBest" else "2x Multiplier",
+                    onClick = {
+                        viewModel.startBlitzGame()
+                    },
+                    modifier = Modifier.testTag("blitz_button")
+                )
+
+                // 5. Zen Relaxed Mode
+                IosGameActionCard(
+                    title = "Zen Mode",
+                    icon = Icons.Default.Favorite,
+                    accentColor = Color(0xFF06B6D4),
+                    trailingBadge = "Endless",
+                    onClick = {
+                        viewModel.startZenGame()
+                    },
+                    modifier = Modifier.testTag("zen_button")
+                )
+
+                // 6. More Games
                 IosGameActionCard(
                     title = "More Games",
-                    subtitle = "One Line path & Tic-Tac-Toe vs Robot",
                     icon = Icons.Default.Games,
                     accentColor = Color(0xFF8B5CF6),
-                    trailingBadge = "2 Games",
+                    trailingBadge = "One Line & Tic Tac Toe",
                     onClick = { showMoreGamesDialog = true },
                     modifier = Modifier.testTag("more_games_button")
                 )
             }
 
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Bottom Brand & Telegram Link
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // iOS Frosted Glass Telegram Link Pill
-                IosGlassCard(
-                    shape = RoundedCornerShape(18.dp),
-                    backgroundColor = Color(0xFF0284C7).copy(alpha = 0.25f),
-                    borderColor = Color(0xFF38BDF8).copy(alpha = 0.4f),
-                    modifier = Modifier
-                        .iosPressEffect(pressedScale = 0.94f) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/drox_71"))
-                            context.startActivity(intent)
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = null,
-                            tint = Color(0xFF38BDF8),
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Join Telegram @drox_71",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE0F2FE)
-                        )
+            // Telegram community channel pill
+            IosGlassCard(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = Color(0xFF0284C7).copy(alpha = 0.20f),
+                borderColor = Color(0xFF38BDF8).copy(alpha = 0.35f),
+                modifier = Modifier
+                    .iosPressEffect(pressedScale = 0.94f) {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/drox_71"))
+                        context.startActivity(intent)
                     }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = null,
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Join Telegram @drox_71",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE0F2FE)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = "DROX STUDIO",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF64748B),
-                    letterSpacing = 2.5.sp
-                )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "DROX STUDIO",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF64748B),
+                letterSpacing = 2.5.sp
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
 
-    // More Games iOS Action Sheet Dialog
+    // Lucky Wheel Dialog
+    if (showLuckyWheelDialog) {
+        LuckyWheelDialog(
+            viewModel = viewModel,
+            onDismiss = { showLuckyWheelDialog = false }
+        )
+    }
+
+    // Theme Picker Dialog
+    if (showThemeDialog) {
+        ThemePickerDialog(
+            currentTheme = currentTheme,
+            onThemeSelect = { theme ->
+                viewModel.setTheme(theme)
+                showThemeDialog = false
+            },
+            onDismiss = { showThemeDialog = false }
+        )
+    }
+
+    // More Games Dialog
     if (showMoreGamesDialog) {
         Dialog(onDismissRequest = { showMoreGamesDialog = false }) {
             IosGlassCard(
                 shape = RoundedCornerShape(28.dp),
-                backgroundColor = Color(0xFF101935).copy(alpha = 0.95f),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.96f),
                 borderColor = Color.White.copy(alpha = 0.18f),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -315,7 +383,6 @@ fun MainMenuScreen(
                     modifier = Modifier.padding(22.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Sheet Top Grabber Handle
                     Box(
                         modifier = Modifier
                             .size(36.dp, 4.dp)
@@ -327,26 +394,15 @@ fun MainMenuScreen(
 
                     Text(
                         text = "More Games",
-                        fontSize = 22.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        letterSpacing = 0.5.sp
+                        color = Color.White
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(
-                        text = "Choose a puzzle to play",
-                        fontSize = 13.sp,
-                        color = Color(0xFF94A3B8)
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // One Line Card
                     IosGameActionCard(
                         title = "One Line",
-                        subtitle = "Connect all tiles without overlapping",
                         icon = Icons.Default.Timeline,
                         accentColor = Color(0xFFF97316),
                         trailingBadge = "Level ${viewModel.oneLineLevelProgress}/20",
@@ -358,12 +414,10 @@ fun MainMenuScreen(
                         modifier = Modifier.testTag("one_line_button")
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Tic Tac Toe Card
                     IosGameActionCard(
                         title = "Tic Tac Toe",
-                        subtitle = "Classic X vs O match against intelligent Robot",
                         icon = Icons.Default.Games,
                         accentColor = Color(0xFF10B981),
                         trailingBadge = "vs AI",
@@ -374,9 +428,8 @@ fun MainMenuScreen(
                         modifier = Modifier.testTag("tic_tac_toe_button")
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    // Apple-style Done Button
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -399,12 +452,12 @@ fun MainMenuScreen(
         }
     }
 
-    // Tic Tac Toe Difficulty Dialog (iOS Segmented Style)
+    // Tic Tac Toe Difficulty Dialog
     if (showTicTacToeDifficultyDialog) {
         Dialog(onDismissRequest = { showTicTacToeDifficultyDialog = false }) {
             IosGlassCard(
                 shape = RoundedCornerShape(28.dp),
-                backgroundColor = Color(0xFF101935).copy(alpha = 0.95f),
+                backgroundColor = Color(0xFF101935).copy(alpha = 0.96f),
                 borderColor = Color.White.copy(alpha = 0.18f),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -422,36 +475,28 @@ fun MainMenuScreen(
                     Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
-                        text = "Select Difficulty",
-                        fontSize = 22.sp,
+                        text = "Difficulty",
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Challenge the Robot at your preferred level",
-                        fontSize = 13.sp,
-                        color = Color(0xFF94A3B8)
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     val difficulties = listOf(
-                        Triple(com.example.model.TicTacToeDifficulty.EASY, Color(0xFF10B981), "Relaxed casual match"),
-                        Triple(com.example.model.TicTacToeDifficulty.MEDIUM, Color(0xFFFBBF24), "Balanced tactical moves"),
-                        Triple(com.example.model.TicTacToeDifficulty.HARD, Color(0xFFEF4444), "Unbeatable smart AI")
+                        Pair(com.example.model.TicTacToeDifficulty.EASY, Color(0xFF10B981)),
+                        Pair(com.example.model.TicTacToeDifficulty.MEDIUM, Color(0xFFFBBF24)),
+                        Pair(com.example.model.TicTacToeDifficulty.HARD, Color(0xFFEF4444))
                     )
 
-                    difficulties.forEach { (diff, color, subtitle) ->
+                    difficulties.forEach { (diff, color) ->
                         IosGlassCard(
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(16.dp),
                             backgroundColor = Color(0xFF172346).copy(alpha = 0.85f),
                             borderColor = color.copy(alpha = 0.35f),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 5.dp)
+                                .padding(vertical = 4.dp)
                                 .iosPressEffect {
                                     showTicTacToeDifficultyDialog = false
                                     viewModel.startTicTacToeGame(diff)
@@ -465,24 +510,18 @@ fun MainMenuScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(14.dp)
+                                        .size(12.dp)
                                         .clip(CircleShape)
                                         .background(color)
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = diff.name,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = subtitle,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF94A3B8)
-                                    )
-                                }
+                                Text(
+                                    text = diff.name,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                                     contentDescription = null,
@@ -512,6 +551,98 @@ fun MainMenuScreen(
                             fontSize = 16.sp
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ThemePickerDialog(
+    currentTheme: AppTheme,
+    onThemeSelect: (AppTheme) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        IosGlassCard(
+            shape = RoundedCornerShape(28.dp),
+            backgroundColor = Color(0xFF0F1B38).copy(alpha = 0.98f),
+            borderColor = Color.White.copy(alpha = 0.20f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Themes & Styles",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                AppTheme.entries.forEach { theme ->
+                    val isSelected = theme == currentTheme
+                    IosGlassCard(
+                        shape = RoundedCornerShape(16.dp),
+                        backgroundColor = theme.glassBackground,
+                        borderColor = if (isSelected) theme.primaryAccent else Color.White.copy(alpha = 0.12f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .iosPressEffect { onThemeSelect(theme) }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(theme.primaryAccent)
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Text(
+                                text = theme.displayName,
+                                fontSize = 16.sp,
+                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+                                color = Color.White,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Text(
+                                    text = "Active",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = theme.primaryAccent
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                        .iosPressEffect { onDismiss() }
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Done",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
             }
         }

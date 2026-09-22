@@ -17,6 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +39,7 @@ fun AdventureMapScreen(
     viewModel: GameViewModel,
     modifier: Modifier = Modifier
 ) {
+    val currentTheme by viewModel.currentTheme.collectAsState()
     val unlockedLevel = viewModel.preferences.unlockedLevel
     val gridState = rememberLazyGridState()
 
@@ -57,11 +60,7 @@ fun AdventureMapScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0C1635),
-                        Color(0xFF080E23),
-                        Color(0xFF050814)
-                    )
+                    colors = currentTheme.backgroundGradient
                 )
             )
             .statusBarsPadding()

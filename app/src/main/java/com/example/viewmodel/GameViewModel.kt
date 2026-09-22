@@ -17,6 +17,11 @@ import com.example.model.ObjectiveType
 import com.example.model.Particle
 import com.example.security.ScoreValidator
 import com.example.security.SecurityUtils
+import com.example.model.AppTheme
+import com.example.model.DailyChallenge
+import com.example.model.SpinReward
+import com.example.model.SpinWheelConfig
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +55,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val _dragState = MutableStateFlow(DragState())
     val dragState: StateFlow<DragState> = _dragState.asStateFlow()
 
+    private val _currentTheme = MutableStateFlow(AppTheme.fromId(preferences.currentTheme))
+    val currentTheme: StateFlow<AppTheme> = _currentTheme.asStateFlow()
+
     // Screen navigation state
     enum class Screen {
         SPLASH,
@@ -68,6 +76,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     // Board layout coordinates measured by Compose
     var boardBoundsInRoot: Pair<Offset, Float> = Pair(Offset.Zero, 0f) // (topLeft, sizePx)
+
+    // Zen Mode undo history
+    private var previousGameState: GameState? = null
+
+    // Blitz countdown job
+    private var blitzJob: Job? = null
     
     // Tic-Tac-Toe State
     private val _ticTacToeState = MutableStateFlow(com.example.model.TicTacToeState())
@@ -84,11 +98,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         startNewClassicGame()
     }
 
+    fun setTheme(theme: AppTheme) {
+        preferences.currentTheme = theme.id
+        _currentTheme.value = theme
+    }
+
     fun navigateTo(screen: Screen) {
         _currentScreen.value = screen
     }
 
     fun startNewClassicGame() {
+        blitzJob?.cancel()
         val initialPieces = BlockPiece.generatePieceTray()
         _gameState.value = GameState(
             board = List(8) { List(8) { 0 } },
@@ -100,7 +120,105 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             isGameOver = false,
             isLevelWon = false
         )
+        previousGameState = null
         resetDrag()
+    }
+
+    fun startBlitzGame() {
+        blitzJob?.cancel()
+        val initialPieces = BlockPiece.generatePieceTray()
+        _gameState.value = GameState(
+            board = List(8) { List(8) { 0 } },
+            trayPieces = initialPieces,
+            score = 0,
+            bestScore = preferences.blitzBestScore,
+            currentCombo = 0,
+            gameMode = GameMode.BLITZ,
+            blitzTimeRemainingSec = 90,
+            isGameOver = false,
+            isLevelWon = false
+        )
+        previousGameState = null
+        resetDrag()
+        navigateTo(Screen.CLASSIC_GAME)
+
+        // Launch 90s countdown
+        blitzJob = viewModelScope.launch {
+            while (_gameState.value.blitzTimeRemainingSec > 0 && !_gameState.value.isGameOver) {
+                delay(1000)
+                val remaining = _gameState.value.blitzTimeRemainingSec - 1
+                if (remaining <= 0) {
+                    soundManager.playGameOver()
+                    _gameState.update { it.copy(blitzTimeRemainingSec = 0, isGameOver = true) }
+                    break
+                } else {
+                    _gameState.update { it.copy(blitzTimeRemainingSec = remaining) }
+                }
+            }
+        }
+    }
+
+    fun startZenGame() {
+        blitzJob?.cancel()
+        val initialPieces = BlockPiece.generatePieceTray()
+        _gameState.value = GameState(
+            board = List(8) { List(8) { 0 } },
+            trayPieces = initialPieces,
+            score = 0,
+            bestScore = preferences.bestScore,
+            currentCombo = 0,
+            gameMode = GameMode.ZEN,
+            canUndo = false,
+            isGameOver = false,
+            isLevelWon = false
+        )
+        previousGameState = null
+        resetDrag()
+        navigateTo(Screen.CLASSIC_GAME)
+    }
+
+    fun startDailyChallenge() {
+        blitzJob?.cancel()
+        val today = DailyChallenge.getTodayDate()
+        val challenge = DailyChallenge.generateForDate(today)
+        val initialPieces = BlockPiece.generatePieceTray()
+
+        _gameState.value = GameState(
+            board = List(8) { List(8) { 0 } },
+            trayPieces = initialPieces,
+            score = 0,
+            bestScore = challenge.targetScore,
+            currentCombo = 0,
+            gameMode = GameMode.DAILY,
+            dailyTargetLines = challenge.targetLines,
+            dailyCurrentLines = 0,
+            dailyMovesRemaining = challenge.maxMoves,
+            isGameOver = false,
+            isLevelWon = false
+        )
+        previousGameState = null
+        resetDrag()
+        navigateTo(Screen.CLASSIC_GAME)
+    }
+
+    fun undoZenMove() {
+        if (_gameState.value.isZen && previousGameState != null) {
+            _gameState.value = previousGameState!!.copy(canUndo = false)
+            previousGameState = null
+            soundManager.playBlockPlace()
+        }
+    }
+
+    fun spinLuckyWheel(): SpinReward {
+        val reward = SpinWheelConfig.REWARDS.random()
+        preferences.lastSpinDate = DailyChallenge.getTodayDate()
+        when (reward.id) {
+            0, 3 -> preferences.hintsCount += reward.rewardValue
+            1, 4 -> preferences.updateBestScore(preferences.bestScore + reward.rewardValue)
+            2 -> setTheme(AppTheme.AQUA_GLASS)
+            5 -> preferences.hintsCount += 2
+        }
+        return reward
     }
 
     fun startAdventureLevel(levelNum: Int) {
@@ -391,6 +509,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun placePiece(piece: BlockPiece, startRow: Int, startCol: Int, slotIndex: Int) {
+        if (_gameState.value.isZen) {
+            previousGameState = _gameState.value.copy(canUndo = true)
+        }
+
         val currentBoard = _gameState.value.board.map { it.toMutableList() }
         for (r in 0 until piece.height) {
             for (c in 0 until piece.width) {
@@ -433,7 +555,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             else -> linesCleared * 350
         }
         val comboBonus = if (newCombo > 1) (newCombo - 1) * 100 else 0
-        val rawMovePoints = placementPoints + linePoints + comboBonus
+        val rawMovePoints = (placementPoints + linePoints + comboBonus) * (if (_gameState.value.isBlitz) 2 else 1)
         val validMove = ScoreValidator.validateMoveScore(placedTiles, linesCleared, newCombo, rawMovePoints)
         val totalMovePoints = if (validMove) rawMovePoints else 0
         newCombo = ScoreValidator.sanitizeCombo(newCombo)
@@ -446,11 +568,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Update piece tray
-        val updatedTray = _gameState.value.trayPieces.toMutableList()
+        var updatedTray = _gameState.value.trayPieces.toMutableList()
         updatedTray[slotIndex] = null
         if (updatedTray.all { it == null }) {
             updatedTray.clear()
             updatedTray.addAll(BlockPiece.generatePieceTray())
+        }
+
+        // In Zen mode, if no pieces fit, peacefully provide fresh pieces
+        if (_gameState.value.isZen && updatedTray.filterNotNull().none { canPieceFitAnywhere(it, nextBoard) }) {
+            updatedTray = BlockPiece.generatePieceTray().toMutableList()
         }
 
         val newScore = ScoreValidator.sanitizeScore(_gameState.value.score + totalMovePoints)
@@ -461,7 +588,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val newFloatingTexts = mutableListOf<FloatingText>()
 
         if (linesCleared > 0) {
-            // Generate sparkle particles at line clear centers
             val (boardTopLeft, boardSize) = boardBoundsInRoot
             val cellSize = if (boardSize > 0) boardSize / 8f else 50f
 
@@ -507,12 +633,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         preferences.addStats(linesCleared, placedTiles, newCombo)
         if (_gameState.value.isClassic) {
             preferences.updateBestScore(newScore)
+        } else if (_gameState.value.isBlitz) {
+            if (newScore > preferences.blitzBestScore) {
+                preferences.blitzBestScore = newScore
+            }
         }
 
-        // Check Adventure mode objective
+        // Check Adventure & Daily mode objectives
         var isLevelWon = false
         var earnedStars = 0
         var adventureProgress = _gameState.value.adventureProgress
+        var dailyCurrent = _gameState.value.dailyCurrentLines
+        var dailyRemainingMoves = _gameState.value.dailyMovesRemaining
 
         if (_gameState.value.isAdventure) {
             val level = AdventureLevel.getLevel(_gameState.value.currentAdventureLevel)
@@ -541,10 +673,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 preferences.unlockNextLevel(level.levelNumber)
                 soundManager.playLevelComplete()
             }
+        } else if (_gameState.value.isDaily) {
+            dailyCurrent += linesCleared
+            dailyRemainingMoves = (dailyRemainingMoves - 1).coerceAtLeast(0)
+            if (dailyCurrent >= _gameState.value.dailyTargetLines) {
+                isLevelWon = true
+                val today = DailyChallenge.getTodayDate()
+                if (preferences.lastDailyCompletedDate != today) {
+                    preferences.lastDailyCompletedDate = today
+                    preferences.dailyStreak += 1
+                }
+                soundManager.playLevelComplete()
+            }
         }
 
-        // Check Game Over: can ANY remaining tray piece fit?
-        val isGameOver = !isLevelWon && updatedTray.filterNotNull().none { canPieceFitAnywhere(it, nextBoard) }
+        // Check Game Over
+        var isGameOver = false
+        if (!_gameState.value.isZen && !isLevelWon) {
+            val noPiecesFit = updatedTray.filterNotNull().none { canPieceFitAnywhere(it, nextBoard) }
+            val dailyOutOfMoves = _gameState.value.isDaily && dailyRemainingMoves <= 0 && !isLevelWon
+            isGameOver = noPiecesFit || dailyOutOfMoves
+        }
 
         if (isGameOver) {
             soundManager.playGameOver()
@@ -563,6 +712,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             isLevelWon = isLevelWon,
             adventureProgress = adventureProgress,
             adventureStars = earnedStars,
+            dailyCurrentLines = dailyCurrent,
+            dailyMovesRemaining = dailyRemainingMoves,
+            canUndo = _gameState.value.isZen && previousGameState != null,
             particles = newParticles,
             floatingTexts = newFloatingTexts,
             lastMoveClearedLines = linesCleared

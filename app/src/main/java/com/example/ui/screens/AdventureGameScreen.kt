@@ -60,6 +60,7 @@ fun AdventureGameScreen(
 ) {
     val gameState by viewModel.gameState.collectAsState()
     val dragState by viewModel.dragState.collectAsState()
+    val currentTheme by viewModel.currentTheme.collectAsState()
     val level = AdventureLevel.getLevel(gameState.currentAdventureLevel)
 
     val progressFraction = (gameState.adventureProgress.toFloat() / level.targetValue.toFloat()).coerceIn(0f, 1f)
@@ -69,11 +70,7 @@ fun AdventureGameScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0C1635),
-                        Color(0xFF080E23),
-                        Color(0xFF050814)
-                    )
+                    colors = currentTheme.backgroundGradient
                 )
             )
             .statusBarsPadding()
